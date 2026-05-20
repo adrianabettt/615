@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Descobrindo Padrões | EF06CO06</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #f0f6ff;
+    --white:     #ffffff;
+    --surface:   #e8f1fc;
+    --blue:      #1a73e8;
+    --blue-lt:   #d2e3fc;
+    --blue-dk:   #0d47a1;
+    --green:     #1e9e5c;
+    --green-lt:  #d4f5e4;
+    --green-dk:  #145c36;
+    --orange:    #f57c00;
+    --orange-lt: #ffe8cc;
+    --orange-dk: #b35900;
+    --red:       #d32f2f;
+    --red-lt:    #fde8e8;
+    --gold:      #f5c518;
+    --text:      #1a2340;
+    --muted:     #5c6e8a;
+    --border:    #cddcf5;
+    --shadow:    0 2px 16px rgba(26,115,232,0.10);
+    --shadow-lg: 0 8px 32px rgba(26,115,232,0.14);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ══ TOPBAR ══ */
+  .topbar {
+    background: var(--white);
+    border-bottom: 2px solid var(--blue-lt);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 62px;
+    box-shadow: 0 2px 8px rgba(26,115,232,0.08);
+    position: sticky; top: 0; z-index: 100;
+    gap: 12px;
+  }
+  .topbar-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .topbar-brand .logo {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-dk));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    box-shadow: 0 2px 8px rgba(26,115,232,0.3);
+  }
+  .topbar-brand span { font-weight: 800; font-size: 0.95rem; color: var(--blue-dk); line-height: 1.2; }
+  .topbar-brand small { display: block; font-size: 0.68rem; color: var(--muted); font-weight: 600; }
+
+  .step-nav { display: flex; align-items: center; gap: 5px; }
+  .step-dot {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid var(--border); background: var(--white);
+    color: var(--muted); font-size: 0.76rem; font-weight: 800;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0;
+  }
+  .step-dot:hover  { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
+  .step-dot.active { background: var(--blue); border-color: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(26,115,232,0.35); }
+  .step-dot.done   { background: var(--green-lt); border-color: var(--green); color: var(--green-dk); }
+  .step-line { width: 16px; height: 2px; background: var(--border); border-radius: 1px; }
+  .step-line.done { background: var(--green); }
+
+  /* ══ MAIN ══ */
+  main {
+    flex: 1;
+    max-width: 860px; width: 100%;
+    margin: 0 auto;
+    padding: 32px 20px 16px;
+    display: flex; flex-direction: column;
+  }
+
+  /* ══ SCREENS ══ */
+  .screen { display: none; flex-direction: column; flex: 1; animation: fadeSlide .35s ease both; }
+  .screen.active { display: flex; }
+  .screen.back-anim { animation: fadeSlideBack .35s ease both; }
+  @keyframes fadeSlide     { from { opacity:0; transform:translateX(28px); } to { opacity:1; transform:translateX(0); } }
+  @keyframes fadeSlideBack { from { opacity:0; transform:translateX(-28px);} to { opacity:1; transform:translateX(0); } }
+
+  /* ══ SCREEN HEADER ══ */
+  .screen-header { margin-bottom: 24px; }
+  .step-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: 999px; padding: 4px 14px;
+    font-size: 0.72rem; font-weight: 800;
+    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px;
+  }
+  .step-badge.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+  .step-badge.green  { background: var(--green-lt);  color: var(--green-dk); }
+  .step-badge.orange { background: var(--orange-lt); color: var(--orange-dk); }
+  .screen-header h1 { font-size: clamp(1.5rem, 4vw, 2.1rem); font-weight: 900; line-height: 1.2; margin-bottom: 6px; }
+  .screen-header h1 em { font-style: normal; color: var(--blue); }
+  .screen-header p { font-size: 0.95rem; color: var(--muted); line-height: 1.6; }
+
+  /* ══ CARD ══ */
+  .card {
+    background: var(--white); border: 1.5px solid var(--border);
+    border-radius: 18px; padding: 24px; margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+  .card-title {
+    font-size: 0.8rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.09em;
+    margin-bottom: 14px; display: flex; align-items: center; gap: 7px;
+  }
+  .card-title.blue   { color: var(--blue); }
+  .card-title.green  { color: var(--green); }
+  .card-title.orange { color: var(--orange); }
+
+  /* ══ CONCEPT GRID ══ */
+  .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+  .concept-item {
+    border-radius: 14px; padding: 18px; border: 2px solid transparent;
+    transition: transform .18s, box-shadow .18s;
+  }
+  .concept-item:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+  .concept-item.blue-item   { background: var(--blue-lt);   border-color: #b0ccf8; }
+  .concept-item.green-item  { background: var(--green-lt);  border-color: #a0dfc0; }
+  .concept-item.orange-item { background: var(--orange-lt); border-color: #ffc990; }
+  .concept-emoji { font-size: 2rem; margin-bottom: 8px; }
+  .concept-item h3 { font-size: .95rem; font-weight: 800; margin-bottom: 5px; }
+  .concept-item.blue-item h3   { color: var(--blue-dk); }
+  .concept-item.green-item h3  { color: var(--green-dk); }
+  .concept-item.orange-item h3 { color: var(--orange-dk); }
+  .concept-item p { font-size: .82rem; color: var(--muted); line-height: 1.5; }
+
+  /* ══ SCENARIOS ══ */
+  .scenario {
+    background: var(--bg); border: 2px solid var(--border); border-radius: 14px;
+    padding: 16px 20px; display: grid; grid-template-columns: auto 1fr auto;
+    align-items: center; gap: 14px; cursor: pointer; transition: all .2s;
+    margin-bottom: 10px; user-select: none;
+  }
+  .scenario:hover  { border-color: var(--blue); background: var(--blue-lt); transform: translateX(4px); }
+  .scenario.active { border-color: var(--orange); background: var(--orange-lt); }
+  .sc-num {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--blue); color: #fff;
+    font-family: 'Space Mono', monospace; font-weight: 700; font-size: .88rem;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(26,115,232,.25);
+  }
+  .scenario.active .sc-num { background: var(--orange); box-shadow: 0 2px 8px rgba(245,124,0,.3); }
+  .sc-content .title { font-weight: 800; font-size: .92rem; margin-bottom: 3px; }
+  .sc-content .detail { font-size: .8rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .sc-content .detail b { color: var(--orange); }
+  .sc-arrow { font-size: 1.1rem; color: var(--muted); transition: color .2s; }
+  .scenario:hover .sc-arrow, .scenario.active .sc-arrow { color: var(--orange); }
+  .sc-detail-box {
+    display: none; background: #fff8f0; border: 2px solid #ffc990;
+    border-radius: 12px; padding: 14px 18px;
+    margin-top: -6px; margin-bottom: 10px;
+    font-size: .88rem; line-height: 1.7; color: var(--text);
+    animation: dropDown .22s ease both;
+  }
+  .sc-detail-box.open { display: block; }
+  @keyframes dropDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+  .sc-detail-box strong { color: var(--orange-dk); }
+  .progress-wrap { margin-top: 16px; display: flex; align-items: center; gap: 10px; font-size: .8rem; color: var(--muted); }
+  .progress-track { flex: 1; height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 999px; transition: width .5s ease; }
+  .progress-fill.blue   { background: linear-gradient(90deg, var(--blue), #4fa3f7); }
+  .progress-fill.green  { background: linear-gradient(90deg, var(--green), #56c98a); }
+  .progress-fill.orange { background: linear-gradient(90deg, var(--orange), #ffb04c); }
+
+  /* ══ TABLE ══ */
+  .compare-table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+  .compare-table thead tr { background: var(--surface); }
+  .compare-table th {
+    padding: 10px 14px; text-align: left;
+    font-size: .75rem; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--muted); font-weight: 800; border-bottom: 2px solid var(--border);
+  }
+  .compare-table td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table tr:hover td { background: var(--bg); }
+  .compare-table td:first-child { font-weight: 700; }
+  .mono { font-family: 'Space Mono', monospace; font-size: .85rem; }
+  .tag { display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: .74rem; font-weight: 800; font-family: 'Space Mono', monospace; }
+  .tag-muda { background: var(--orange-lt); color: var(--orange-dk); }
+  .tag-fixo { background: var(--green-lt);  color: var(--green-dk); }
+  .formula-box {
+    background: linear-gradient(135deg, var(--green-lt), #c6f0da);
+    border: 2px solid #8dd5b0; border-radius: 14px;
+    padding: 20px 24px; text-align: center; margin-top: 18px;
+  }
+  .formula-box .flabel { font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .09em; color: var(--green-dk); margin-bottom: 8px; }
+  .formula-box .ftext  { font-family: 'Space Mono', monospace; font-size: 1.2rem; font-weight: 700; color: var(--green-dk); }
+  .formula-box .ftext span { color: var(--orange); }
+
+  /* ══ CALCULATOR ══ */
+  .calc-wrap { background: var(--surface); border-radius: 14px; padding: 20px; border: 1.5px solid var(--border); }
+  .fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .field-group label { display: block; font-size: .76rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; }
+  .field-group input {
+    width: 100%; background: var(--white); border: 2px solid var(--border);
+    border-radius: 10px; padding: 10px 14px; color: var(--text);
+    font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700;
+    outline: none; transition: border-color .2s, box-shadow .2s;
+  }
+  .field-group input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,115,232,.15); }
+  .field-group input::placeholder { color: #b0bdd4; }
+  .btn-primary {
+    width: 100%; padding: 12px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-dk));
+    color: #fff; border: none; border-radius: 10px;
+    font-family: 'Nunito', sans-serif; font-size: 1rem; font-weight: 800;
+    cursor: pointer; transition: all .2s;
+    box-shadow: 0 4px 12px rgba(26,115,232,.3);
+  }
+  .btn-primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .btn-primary:active { transform: scale(.98); }
+  .result-box {
+    display: none; margin-top: 14px; padding: 16px;
+    background: var(--green-lt); border: 2px solid #8dd5b0;
+    border-radius: 12px; animation: popIn .28s ease;
+  }
+  .result-box.visible { display: block; }
+  .result-box.erro-box { background: var(--red-lt); border-color: #f5b4b4; }
+  .res-formula { font-family: 'Space Mono', monospace; font-size: .82rem; color: var(--muted); margin-bottom: 6px; }
+  .res-formula span { color: var(--orange); font-weight: 700; }
+  .res-valor { font-family: 'Space Mono', monospace; font-size: 1.4rem; font-weight: 700; color: var(--green-dk); }
+  .res-erro  { color: var(--red); font-size: .88rem; font-weight: 700; }
+
+  /* ══ QUIZ ══ */
+  .quiz-q-wrap { margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+  .quiz-q-wrap:last-of-type { border-bottom: none; }
+  .quiz-q { font-size: .95rem; font-weight: 700; margin-bottom: 11px; line-height: 1.5; display: flex; gap: 10px; align-items: flex-start; }
+  .q-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 26px; height: 26px; border-radius: 50%;
+    background: var(--blue); color: #fff;
+    font-size: .78rem; font-weight: 900; flex-shrink: 0; margin-top: 1px;
+  }
+  .options-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 10px; }
+  .opt {
+    background: var(--bg); border: 2px solid var(--border); border-radius: 10px;
+    padding: 9px 15px; cursor: pointer; font-size: .87rem;
+    transition: all .18s; display: flex; align-items: center; gap: 10px; font-weight: 600;
+  }
+  .opt:hover { border-color: var(--blue); background: var(--blue-lt); }
+  .opt.certo        { border-color: var(--green); background: var(--green-lt); color: var(--green-dk); pointer-events: none; }
+  .opt.errado       { border-color: var(--red);   background: var(--red-lt);   color: var(--red);      pointer-events: none; }
+  .opt.mostrar-certo{ border-color: var(--green); background: #f0faf5; pointer-events: none; }
+  .opt.bloqueado    { pointer-events: none; opacity: .5; }
+  .opt-letter {
+    width: 26px; height: 26px; border-radius: 6px;
+    background: var(--white); border: 1.5px solid var(--border);
+    font-family: 'Space Mono', monospace; font-size: .74rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--muted);
+  }
+  .opt.certo  .opt-letter { background: var(--green); border-color: var(--green); color: #fff; }
+  .opt.errado .opt-letter { background: var(--red);   border-color: var(--red);   color: #fff; }
+  .opt.mostrar-certo .opt-letter { background: var(--green); border-color: var(--green); color: #fff; }
+  .feedback-msg { display: none; padding: 9px 14px; border-radius: 10px; font-size: .83rem; font-weight: 700; margin-top: 6px; animation: popIn .22s ease; }
+  .feedback-msg.visible { display: block; }
+  .feedback-msg.certo  { background: var(--green-lt); color: var(--green-dk); border: 1.5px solid #8dd5b0; }
+  .feedback-msg.errado { background: var(--red-lt);   color: var(--red);      border: 1.5px solid #f5b4b4; }
+
+  /* quiz submit */
+  .btn-submit-quiz {
+    margin-top: 20px; padding: 13px 28px;
+    background: linear-gradient(135deg, var(--orange), var(--orange-dk));
+    color: #fff; border: none; border-radius: 12px;
+    font-family: 'Nunito', sans-serif; font-size: 1rem; font-weight: 800;
+    cursor: pointer; transition: all .2s;
+    box-shadow: 0 4px 14px rgba(245,124,0,.3);
+    display: none;
+  }
+  .btn-submit-quiz:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .btn-submit-quiz.visible { display: inline-block; animation: popIn .3s ease; }
+
+  /* ══ NOTA OVERLAY ══ */
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(13,71,161,.55); backdrop-filter: blur(6px);
+    z-index: 200; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .overlay.visible { display: flex; }
+
+  .nota-card {
+    background: var(--white); border-radius: 24px;
+    padding: 40px 36px; text-align: center;
+    max-width: 480px; width: 100%;
+    box-shadow: 0 24px 64px rgba(13,71,161,.25);
+    animation: zoomIn .4s cubic-bezier(.34,1.56,.64,1) both;
+    position: relative;
+  }
+  @keyframes zoomIn { from { opacity:0; transform:scale(.6); } to { opacity:1; transform:scale(1); } }
+
+  .nota-emoji { font-size: 4rem; margin-bottom: 8px; }
+
+  .nota-titulo { font-size: 1.1rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .09em; margin-bottom: 10px; }
+
+  .nota-numero {
+    font-family: 'Space Mono', monospace;
+    font-size: 5rem; font-weight: 700; line-height: 1;
+    margin-bottom: 6px;
+  }
+  .nota-numero.nota-10  { color: var(--green-dk); }
+  .nota-numero.nota-8   { color: var(--blue); }
+  .nota-numero.nota-6   { color: var(--orange); }
+  .nota-numero.nota-4   { color: var(--orange-dk); }
+  .nota-numero.nota-low { color: var(--red); }
+
+  .nota-sub { font-size: 1rem; color: var(--muted); margin-bottom: 18px; font-weight: 600; }
+  .nota-msg { font-size: 1rem; line-height: 1.65; color: var(--text); margin-bottom: 28px; font-weight: 700; }
+
+  .nota-barra-wrap { background: var(--border); border-radius: 999px; height: 14px; overflow: hidden; margin-bottom: 28px; }
+  .nota-barra-fill { height: 100%; border-radius: 999px; transition: width 1s ease .2s; }
+
+  .btn-fechar {
+    padding: 12px 32px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-dk));
+    color: #fff; border: none; border-radius: 12px;
+    font-family: 'Nunito', sans-serif; font-size: 1rem; font-weight: 800;
+    cursor: pointer; transition: all .2s;
+    box-shadow: 0 4px 14px rgba(26,115,232,.3);
+  }
+  .btn-fechar:hover { filter: brightness(1.08); transform: translateY(-1px); }
+
+  .estrelas { font-size: 2rem; letter-spacing: 4px; margin-bottom: 10px; }
+
+  /* ══ NAV BUTTONS ══ */
+  .nav-buttons {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 24px; padding-top: 16px; border-top: 2px solid var(--border); gap: 12px;
+  }
+  .btn-nav {
+    display: flex; align-items: center; gap: 7px;
+    padding: 10px 22px; border-radius: 10px;
+    font-family: 'Nunito', sans-serif; font-size: .92rem; font-weight: 800;
+    cursor: pointer; transition: all .2s; border: 2px solid;
+  }
+  .btn-nav.prev { background: var(--white); border-color: var(--border); color: var(--muted); }
+  .btn-nav.prev:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
+  .btn-nav.next { background: linear-gradient(135deg, var(--blue), var(--blue-dk)); border-color: transparent; color: #fff; box-shadow: 0 4px 12px rgba(26,115,232,.3); margin-left: auto; }
+  .btn-nav.next:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .step-counter { font-size: .78rem; color: var(--muted); font-weight: 700; white-space: nowrap; }
+
+  /* ══ TELA 0 — HERO ══ */
+  .hero-wrap {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    flex: 1; text-align: center; padding: 40px 20px 20px;
+  }
+  .hero-icon-big {
+    width: 110px; height: 110px;
+    background: linear-gradient(135deg, var(--blue-lt), #c6dcfc);
+    border-radius: 30px; display: flex; align-items: center; justify-content: center;
+    font-size: 3.8rem; margin-bottom: 28px;
+    box-shadow: 0 12px 40px rgba(26,115,232,.18), 0 0 0 8px rgba(26,115,232,.06);
+    border: 3px solid #b0ccf8;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
+
+  .hero-wrap h1 {
+    font-size: clamp(2rem, 6vw, 3.2rem); font-weight: 900;
+    line-height: 1.15; color: var(--text); margin-bottom: 14px;
+  }
+  .hero-wrap h1 em { font-style: normal; color: var(--blue); }
+
+  .hero-wrap .subtitle {
+    font-size: 1.05rem; color: var(--muted); line-height: 1.7;
+    max-width: 540px; margin: 0 auto 30px;
+  }
+
+  .hero-chips { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-bottom: 36px; }
+  .hchip {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--white); border: 2px solid var(--border);
+    border-radius: 999px; padding: 7px 18px;
+    font-size: .84rem; font-weight: 700; color: var(--text);
+    box-shadow: var(--shadow);
+  }
+  .hchip.c-blue   { border-color: #b0ccf8; background: var(--blue-lt);   color: var(--blue-dk); }
+  .hchip.c-green  { border-color: #a0dfc0; background: var(--green-lt);  color: var(--green-dk); }
+  .hchip.c-orange { border-color: #ffc990; background: var(--orange-lt); color: var(--orange-dk); }
+
+  .btn-start {
+    padding: 16px 48px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-dk));
+    color: #fff; border: none; border-radius: 14px;
+    font-family: 'Nunito', sans-serif; font-size: 1.1rem; font-weight: 900;
+    cursor: pointer; transition: all .25s;
+    box-shadow: 0 6px 22px rgba(26,115,232,.35);
+    letter-spacing: .03em;
+  }
+  .btn-start:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 10px 30px rgba(26,115,232,.4); }
+  .btn-start:active { transform: scale(.97); }
+
+  .bncc-tag {
+    margin-top: 22px; font-size: .76rem; color: var(--muted); font-weight: 600;
+    font-family: 'Space Mono', monospace; letter-spacing: .06em;
+  }
+
+  /* ══ FOOTER ══ */
+  footer {
+    background: var(--white); border-top: 2px solid var(--border);
+    padding: 14px 24px;
+  }
+  .footer-inner {
+    max-width: 860px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 8px;
+  }
+  .footer-left  { font-size: .78rem; color: var(--muted); font-weight: 600; }
+  .footer-left strong { color: var(--blue-dk); }
+  .footer-center { font-size: .82rem; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 7px; }
+  .footer-center .heart { color: var(--orange); }
+  .footer-right { font-size: .78rem; color: var(--muted); font-weight: 600; }
+
+  @keyframes popIn { from { opacity:0; transform:scale(.95); } to { opacity:1; transform:scale(1); } }
+
+  @media (max-width:600px) {
+    .fields-row { grid-template-columns: 1fr; }
+    .step-line { width: 9px; }
+    .step-dot  { width: 28px; height: 28px; font-size: .7rem; }
+    .footer-left, .footer-right { display: none; }
+    .footer-inner { justify-content: center; }
+    .compare-table th, .compare-table td { padding: 8px 9px; font-size: .79rem; }
+    .nota-numero { font-size: 3.8rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ TOPBAR ══ -->
+<nav class="topbar">
+  <div class="topbar-brand">
+    <div class="logo">🧠</div>
+    <span>EF06CO06 <small>6º Ano</small></span>
+  </div>
+  <div class="step-nav" id="stepNav">
+    <div class="step-dot active" onclick="goTo(0)" title="Início">✦</div>
+    <div class="step-line" id="line01"></div>
+    <div class="step-dot" onclick="goTo(1)" title="Conceitos">1</div>
+    <div class="step-line" id="line12"></div>
+    <div class="step-dot" onclick="goTo(2)" title="Os Casos">2</div>
+    <div class="step-line" id="line23"></div>
+    <div class="step-dot" onclick="goTo(3)" title="Comparação">3</div>
+    <div class="step-line" id="line34"></div>
+    <div class="step-dot" onclick="goTo(4)" title="Simulador">4</div>
+    <div class="step-line" id="line45"></div>
+    <div class="step-dot" onclick="goTo(5)" title="Quiz">5</div>
+  </div>
+</nav>
+
+<!-- ══ NOTA OVERLAY ══ -->
+<div class="overlay" id="overlay">
+  <div class="nota-card" id="notaCard">
+    <div class="nota-emoji" id="notaEmoji"></div>
+    <div class="estrelas" id="notaEstrelas"></div>
+    <div class="nota-titulo">Sua Nota</div>
+    <div class="nota-numero" id="notaNumero"></div>
+    <div class="nota-sub" id="notaSub"></div>
+    <div class="nota-barra-wrap"><div class="nota-barra-fill" id="notaBarra" style="width:0%"></div></div>
+    <div class="nota-msg" id="notaMsg"></div>
+    <button class="btn-fechar" onclick="fecharNota()">✓ Ver resultado</button>
+  </div>
+</div>
+
+<main>
+
+  <!-- ══ TELA 0: TÍTULO / HERO ══ -->
+  <div class="screen active" id="screen0">
+    <div class="hero-wrap">
+      <div class="hero-icon-big">🔍</div>
+      <h1>Descobrindo <em>Padrões</em></h1>
+      <p class="subtitle">
+        Aprenda a pensar como um programador: identifique o que <strong>muda</strong> e o que é <strong>igual</strong> em problemas parecidos — e crie uma solução que funciona para todos!
+      </p>
+      <div class="hero-chips">
+        <div class="hchip c-green">🔍 Reconhecimento de Padrões</div>
+        </div>
+      <button class="btn-start" onclick="goTo(1)">Começar →</button>
+      <div class="bncc-tag">Habilidade EF06CO06 · Profª Adriana Bett Terebinto · Conteúdo Pedagógico</div>
+    </div>
+  </div>
+
+  <!-- ══ TELA 1: CONCEITOS ══ -->
+  <div class="screen" id="screen1">
+    <div class="screen-header">
+      <div class="step-badge blue">📚 Etapa 1 — Conceitos</div>
+      <h1>O que é um <em>Padrão</em>?</h1>
+      <p>Na programação, quando temos vários problemas parecidos, não criamos uma solução para cada um. Procuramos o que eles têm em comum!</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title blue">💡 Conceitos-chave desta aula</div>
+      <div class="concept-grid">
+        <div class="concept-item blue-item">
+          <div class="concept-emoji">🔍</div>
+          <h3>Padrão</h3>
+          <p>O que se <strong>repete</strong> em situações parecidas. É o processo que não muda, mesmo quando os números mudam.</p>
+        </div>
+        <div class="concept-item orange-item">
+          <div class="concept-emoji">📦</div>
+          <h3>Instância</h3>
+          <p>Um <strong>caso específico</strong> de um problema. Cada compra na padaria é uma instância diferente do mesmo problema.</p>
+        </div>
+        <div class="concept-item green-item">
+          <div class="concept-emoji">↔️</div>
+          <h3>Semelhança e Diferença</h3>
+          <p>Detetives de padrões comparam o que é <strong>igual</strong> e o que <strong>muda</strong> entre os casos.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="border-left:4px solid var(--orange)">
+      <div class="card-title orange">🛒 O Problema de Hoje</div>
+      <p style="font-size:.93rem;line-height:1.7">
+        Vamos estudar três situações de compra em uma <strong>padaria</strong>. Em cada uma, o cliente compra um produto diferente, paga um valor diferente e recebe um troco diferente.<br><br>
+        Sua missão como <strong>Detetive de Padrões</strong>: descobrir o que <em>muda</em> e o que é <em>sempre igual</em> nas três situações!
+      </p>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn-nav prev" onclick="goTo(0)">← Voltar</button>
+      <span class="step-counter">Tela 2 de 6</span>
+      <button class="btn-nav next" onclick="goTo(2)">Ver os 3 Casos →</button>
+    </div>
+  </div>
+
+  <!-- ══ TELA 2: OS TRÊS CASOS ══ -->
+  <div class="screen" id="screen2">
+    <div class="screen-header">
+      <div class="step-badge orange">🛒 Etapa 2 — As Instâncias</div>
+      <h1>Os <em>Três Casos</em> da Padaria</h1>
+      <p>Clique em cada situação para ver os detalhes e entender o problema.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title orange">📋 Explore cada instância</div>
+
+      <div class="scenario" id="sc0" onclick="toggleSc(0)">
+        <div class="sc-num">1</div>
+        <div class="sc-content">
+          <div class="title">🍬 Compra de um Doce</div>
+          <div class="detail">Produto: <b>R$ 3,00</b> · Pago: <b>R$ 5,00</b> · Troco: <b>R$ 2,00</b></div>
+        </div>
+        <div class="sc-arrow">▼</div>
+      </div>
+      <div class="sc-detail-box" id="det0">
+        João foi à padaria e escolheu um doce que custava <strong>R$ 3,00</strong>. Ele só tinha uma nota de <strong>R$ 5,00</strong>. O caixa cobrou e devolveu <strong>R$ 2,00</strong> de troco.<br>
+        <em>Cálculo: R$ 5,00 − R$ 3,00 = R$ 2,00</em>
+      </div>
+
+      <div class="scenario" id="sc1" onclick="toggleSc(1)">
+        <div class="sc-num">2</div>
+        <div class="sc-content">
+          <div class="title">🥐 Compra de um Salgado</div>
+          <div class="detail">Produto: <b>R$ 7,00</b> · Pago: <b>R$ 10,00</b> · Troco: <b>R$ 3,00</b></div>
+        </div>
+        <div class="sc-arrow">▼</div>
+      </div>
+      <div class="sc-detail-box" id="det1">
+        Maria comprou um salgado que custava <strong>R$ 7,00</strong>. Pagou com uma nota de <strong>R$ 10,00</strong>. O caixa devolveu <strong>R$ 3,00</strong> de troco.<br>
+        <em>Cálculo: R$ 10,00 − R$ 7,00 = R$ 3,00</em>
+      </div>
+
+      <div class="scenario" id="sc2" onclick="toggleSc(2)">
+        <div class="sc-num">3</div>
+        <div class="sc-content">
+          <div class="title">🥤 Compra de um Suco</div>
+          <div class="detail">Produto: <b>R$ 4,50</b> · Pago: <b>R$ 20,00</b> · Troco: <b>R$ 15,50</b></div>
+        </div>
+        <div class="sc-arrow">▼</div>
+      </div>
+      <div class="sc-detail-box" id="det2">
+        Pedro comprou um suco que custava <strong>R$ 4,50</strong>. Pagou com uma nota de <strong>R$ 20,00</strong>. O caixa devolveu <strong>R$ 15,50</strong> de troco.<br>
+        <em>Cálculo: R$ 20,00 − R$ 4,50 = R$ 15,50</em>
+      </div>
+
+      <div class="progress-wrap">
+        <span>Explorados: <strong id="scCount" style="color:var(--orange)">0</strong>/3</span>
+        <div class="progress-track"><div class="progress-fill orange" id="scBar" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn-nav prev" onclick="goTo(1)">← Voltar</button>
+      <span class="step-counter">Tela 3 de 6</span>
+      <button class="btn-nav next" onclick="goTo(3)">Comparar os Casos →</button>
+    </div>
+  </div>
+
+  <!-- ══ TELA 3: COMPARAÇÃO ══ -->
+  <div class="screen" id="screen3">
+    <div class="screen-header">
+      <div class="step-badge green">📊 Etapa 3 — Comparação</div>
+      <h1>O que <em>Muda</em> e o que é <em>Igual</em>?</h1>
+      <p>Analise a tabela abaixo e encontre o padrão escondido nos três casos.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title green">🔎 Tabela Comparativa</div>
+      <div style="overflow-x:auto">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>Elemento</th>
+              <th>Caso 1 🍬</th>
+              <th>Caso 2 🥐</th>
+              <th>Caso 3 🥤</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Preço do produto</td>
+              <td class="mono">R$ 3,00</td><td class="mono">R$ 7,00</td><td class="mono">R$ 4,50</td>
+              <td><span class="tag tag-muda">🔄 Muda</span></td>
+            </tr>
+            <tr>
+              <td>Valor pago</td>
+              <td class="mono">R$ 5,00</td><td class="mono">R$ 10,00</td><td class="mono">R$ 20,00</td>
+              <td><span class="tag tag-muda">🔄 Muda</span></td>
+            </tr>
+            <tr>
+              <td>Troco recebido</td>
+              <td class="mono">R$ 2,00</td><td class="mono">R$ 3,00</td><td class="mono">R$ 15,50</td>
+              <td><span class="tag tag-muda">🔄 Muda</span></td>
+            </tr>
+            <tr style="background:#f5fff9">
+              <td>Operação realizada</td>
+              <td>Pago − Produto</td><td>Pago − Produto</td><td>Pago − Produto</td>
+              <td><span class="tag tag-fixo">✅ Igual!</span></td>
+            </tr>
+            <tr style="background:#f5fff9">
+              <td>Objetivo</td>
+              <td>Calcular troco</td><td>Calcular troco</td><td>Calcular troco</td>
+              <td><span class="tag tag-fixo">✅ Igual!</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="formula-box">
+        <div class="flabel">🔑 O Padrão Descoberto — A Regra Única</div>
+        <div class="ftext">Troco = <span>Valor Pago</span> − <span>Preço do Produto</span></div>
+      </div>
+    </div>
+
+    <div class="card" style="border-left:4px solid var(--blue)">
+      <div class="card-title blue">💡 Por que isso é Computação?</div>
+      <p style="font-size:.93rem;line-height:1.7">
+        Encontrar esse padrão é o primeiro passo para criar um <strong>algoritmo genérico</strong> — uma solução que funciona para <em>qualquer</em> compra. Na próxima aula vamos transformar essa regra em um algoritmo usando <strong>variáveis</strong>!
+      </p>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn-nav prev" onclick="goTo(2)">← Voltar</button>
+      <span class="step-counter">Tela 4 de 6</span>
+      <button class="btn-nav next" onclick="goTo(4)">Testar o Algoritmo →</button>
+    </div>
+  </div>
+
+  <!-- ══ TELA 4: SIMULADOR ══ -->
+  <div class="screen" id="screen4">
+    <div class="screen-header">
+      <div class="step-badge blue">🧪 Etapa 4 — Simulador</div>
+      <h1>Teste o <em>Algoritmo</em> do Troco</h1>
+      <p>A fórmula que descobrimos funciona para qualquer valor? Insira números e veja!</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title blue">⚙️ Calculadora de Troco</div>
+      <div class="calc-wrap">
+        <div class="fields-row">
+          <div class="field-group">
+            <label>💰 Preço do Produto (R$)</label>
+            <input type="number" id="preco" placeholder="Ex: 3.00" min="0" step="0.01">
+          </div>
+          <div class="field-group">
+            <label>💵 Valor Pago (R$)</label>
+            <input type="number" id="pago" placeholder="Ex: 5.00" min="0" step="0.01">
+          </div>
+        </div>
+        <button class="btn-primary" onclick="calcTroco()">▶ Calcular o Troco</button>
+        <div class="result-box" id="trocoResult">
+          <div class="res-formula" id="trocoFormula"></div>
+          <div class="res-valor"   id="trocoValor"></div>
+          <div class="res-erro"    id="trocoErro" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="border-left:4px solid var(--green)">
+      <div class="card-title green">🎯 Desafio Extra</div>
+      <p style="font-size:.92rem;line-height:1.7;margin-bottom:10px">Tente calcular e confira se acertou:</p>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:9px;font-size:.9rem">
+        <li style="display:flex;gap:10px;align-items:center"><span style="font-size:1.1rem">🍕</span>Pizza <strong>R$ 12,00</strong>, pago <strong>R$ 50,00</strong> → Troco: <strong style="color:var(--green-dk)">R$ 38,00</strong></li>
+        <li style="display:flex;gap:10px;align-items:center"><span style="font-size:1.1rem">☕</span>Café <strong>R$ 6,50</strong>, pago <strong>R$ 10,00</strong> → Troco: <strong style="color:var(--green-dk)">R$ 3,50</strong></li>
+        <li style="display:flex;gap:10px;align-items:center"><span style="font-size:1.1rem">🎂</span>Bolo <strong>R$ 28,90</strong>, pago <strong>R$ 100,00</strong> → Troco: <strong style="color:var(--green-dk)">R$ 71,10</strong></li>
+      </ul>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn-nav prev" onclick="goTo(3)">← Voltar</button>
+      <span class="step-counter">Tela 5 de 6</span>
+      <button class="btn-nav next" onclick="goTo(5)">Fazer o Quiz →</button>
+    </div>
+  </div>
+
+  <!-- ══ TELA 5: QUIZ 10 PERGUNTAS ══ -->
+  <div class="screen" id="screen5">
+    <div class="screen-header">
+      <div class="step-badge orange">🕵️ Etapa 5 — Avaliação</div>
+      <h1>Quiz: <em>Detetive de Padrões</em></h1>
+      <p>Responda as 10 perguntas. Ao terminar, clique em <strong>"Ver minha nota"</strong> para descobrir seu resultado!</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title orange">❓ 10 Perguntas — Valendo Nota de 0 a 10</div>
+
+      <!-- Q1 -->
+      <div class="quiz-q-wrap">
+        <div class="quiz-q"><span class="q-num">1</span>O que é uma <strong>instância</strong> de um problema?</div>
+        <div class="options-list" id="opts1">
+          <div class="opt" onclick="answer(1,this,false)"><span class="opt-letter">A</span>A solução que funciona para qualquer caso</div>
+          <div class="opt" onclick="answer(1,this,true)"><span class="opt-letter">B</span>Um caso específico de um problema</div>
+          <div class="opt" onclick="answer(1,this,false)"><span class="opt-letter">C</span>Um erro no algoritmo</div>
+          <div class="opt" onclick="answer(1,this,false)"><span class="opt-letter">D</span>O nome de uma linguagem de programação</div>
+        </div>
+        <div class="feedback-msg" id="fb1"></div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="quiz-q-wrap">
+        <div class="quiz-q"><span class="q-num">2</span>Nos três casos da padaria, o que <strong>permanece igual</strong>?</div>
+        <div class="options-list" id="opts2">
+          <div class="opt" onclick="answer(2,this,false)"><span class="opt-letter">A</span>O preço do produto comprado</div>
+          <div class="opt" onclick="answer(2,this,false)"><span class="opt-letter">B</span>O valor pago pelo cliente</div>
+          <div class="opt" onclick="answer(2,this,true)"><span class="opt-letter">C</span>A operação: Valor Pago − Preço do Produto</div>
+          <div class="opt" onclick="answer(2,this,false)"><span class="opt-letter">D</span>O valor do troco</div>
+        </div>
+        <div class="feedback-msg" id="fb2"></div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="quiz-q-wrap">
+        <div class="quiz-q"><span class="q-num">3</span>Por que descobrir o padrão é importante na computação?</div>
+        <div class="options-list" id="opts3">
+          <div class="opt" onclick="answer(3,this,false)"><span class="opt-letter">A</span>Porque torna o código mais colorido</div>
+          <div class="opt" onclick="answer(3,this,false)"><span class="opt-letter">B</span>Para usar mais computadores ao mesmo tempo</div>
+          <div class="opt" onclick="answer(3,this,true)"><span class="opt-letter">C</span>Para criar uma solução que resolve todos os casos, não apenas um</div>
+          <div class="opt" onclick="answer(3,this,false)"><span class="opt-letter">D</span>Para memorizar os números de cada problema</div>
+        </div>
+        <div class="feedback-msg" id="fb3"></div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="quiz-q-wrap">
+        <div class="quiz-q"><span class="q-num">4</span>Na padaria, se o produto custa <strong>R$ 8,00</strong> e o cliente paga com <strong>R$ 20,00</strong>, qual é o troco?</div>
+        <div class="options-list" id="opts4">
+          <div class="opt" onclick="answer(4,this,false)"><span class="opt-letter">A</span>R$ 8,00</div>
+          <div class="opt" onclick="answer(4,this,false)"><span class="opt-letter">B</span>R$ 28,00</div>
+          <div class="opt" onclick="answer(4,this,true)"><span class="opt-letter">C</span>R$ 12,00</div>
+          <div class="opt" onclick="answer(4,this,false)"><span class="opt-letter">D</span>R$ 2,00</div>
+        </div>
+        <div class="feedback-msg" id="fb4"></div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="quiz-q-wrap">
+        <div class="quiz-q"><span class="q-num">5</span>O que é um <strong>algoritmo genérico</strong>?</div>
+        <div class="options-list" id="opts5">
+          <div class="opt" onclick="answer(5,this,false)"><span class="opt-letter">A</span>Um algoritmo que só funciona para um problema específico</div>
+          <div class="opt" onclick="answer(5,this,true)"><span class="opt-letter">B</span>Um passo a passo que resolve qualquer caso de um mesmo tipo de problema</div>
+          <div class="opt" onclick="answer(5,this,false)"><span class="opt-letter">C</span>Um programa que usa inteligência artificial</div>
+          <div class="opt" onclick="answer(5,this,false)"><span class="opt-letter">D</span>Uma lista de erros em um programa</div>
+        </div>
+        <div class="feedback-msg" id="fb5"></div>
+      </div>
+
+      <!-- Q6 -->
+      <div class="quiz-q-wrap">
+        <div class="quiz-q"><span class="q-num">6</span>Nos três casos estudados, quais são os valores que <strong>mudam</strong>?</div>
+        <div class="options-list" id="opts6">
+          <div class="opt" onclick="answer(6,this,false)"><span class="opt-letter">A</span>Apenas o nome do produto</div>
+          <div class="opt" onclick="answer(6,this,false)"><span class="opt-letter">B</span>A operação de subtração</div>
+          <div class="opt" onclick="answer(6,this,true)"><span class="opt-letter">C</span>O preço do produto, o valor pago e o troco</div>
+          <div class="opt" onclick="answer(6,this,false)"><span class="opt-letter">D</span>Somente o valor do troco</div>
+        </div>
+        <div class="feedback-msg" id="fb6"></div>
+      </div>
+
+      <!-- Q7 -->
+      <div class="quiz-q-wrap">
+        <div class="quiz-q"><span class="q-num">7</span>Qual das alternativas representa corretamente a <strong>fórmula do troco</strong>?</div>
+        <div class="options-list" id="opts7">
+          <div class="opt" onclick="answer(7,this,false)"><span class="opt-letter">A</span>Troco = Preço do Produto + Valor Pago</div>
+          <div class="opt" onclick="answer(7,this,false)"><span class="opt-letter">B</span>Troco = Preço do Produto − Valor Pago</div>
+          <div class="opt" onclick="answer(7,this,true)"><span class="opt-letter">C</span>Troco = Valor Pago − Preço do Produto</div>
+          <div class="opt" onclick="answer(7,this,false)"><span class="opt-letter">D</span>Troco = Valor Pago × Preço do Produto</div>
+        </div>
+        <div class="feedback-msg" id="fb7"></div>
+      </div>
+
+      <!-- Q8 -->
+      <div class="quiz-q-wrap">
+        <div class="quiz-q"><span class="q-num">8</span>Um cliente paga <strong>R$ 50,00</strong> por um produto de <strong>R$ 34,50</strong>. Qual é o troco?</div>
+        <div class="options-list" id="opts8">
+          <div class="opt" onclick="answer(8,this,false)"><span class="opt-letter">A</span>R$ 84,50</div>
+          <div class="opt" onclick="answer(8,this,true)"><span class="opt-letter">B</span>R$ 15,50</div>
+          <div class="opt" onclick="answer(8,this,false)"><span class="opt-letter">C</span>R$ 14,50</div>
+          <div class="opt" onclick="answer(8,this,false)"><span class="opt-letter">D</span>R$ 34,50</div>
+        </div>
+        <div class="feedback-msg" id="fb8"></div>
+      </div>
+
+      <!-- Q9 -->
+      <div class="quiz-q-wrap">
+        <div class="quiz-q"><span class="q-num">9</span>O <strong>reconhecimento de padrões</strong> na computação serve para:</div>
+        <div class="options-list" id="opts9">
+          <div class="opt" onclick="answer(9,this,false)"><span class="opt-letter">A</span>Decorar todos os problemas possíveis</div>
+          <div class="opt" onclick="answer(9,this,false)"><span class="opt-letter">B</span>Usar o computador para jogar videogame</div>
+          <div class="opt" onclick="answer(9,this,true)"><span class="opt-letter">C</span>Identificar similaridades para criar soluções reutilizáveis</div>
+          <div class="opt" onclick="answer(9,this,false)"><span class="opt-letter">D</span>Escolher a linguagem de programação correta</div>
+        </div>
+        <div class="feedback-msg" id="fb9"></div>
+      </div>
+
+      <!-- Q10 -->
+      <div class="quiz-q-wrap">
+        <div class="quiz-q"><span class="q-num">10</span>Se usamos a fórmula <em>Troco = Valor Pago − Preço do Produto</em>, o que <strong>"Valor Pago"</strong> e <strong>"Preço do Produto"</strong> representam nessa fórmula?</div>
+        <div class="options-list" id="opts10">
+          <div class="opt" onclick="answer(10,this,false)"><span class="opt-letter">A</span>Números fixos que nunca mudam</div>
+          <div class="opt" onclick="answer(10,this,false)"><span class="opt-letter">B</span>Erros de digitação</div>
+          <div class="opt" onclick="answer(10,this,true)"><span class="opt-letter">C</span>Variáveis — espaços que guardam valores diferentes em cada situação</div>
+          <div class="opt" onclick="answer(10,this,false)"><span class="opt-letter">D</span>Nomes de programas de computador</div>
+        </div>
+        <div class="feedback-msg" id="fb10"></div>
+      </div>
+
+      <button class="btn-submit-quiz" id="btnSubmit" onclick="verNota()">🏆 Ver minha nota</button>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn-nav prev" onclick="goTo(4)">← Voltar</button>
+      <span class="step-counter">Tela 6 de 6</span>
+    </div>
+  </div>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-center">
+      <span>Material Pedagógico</span>
+      <span class="heart">♥</span>
+      <strong>Profª Adriana Bett Terebinto</strong>
+    </div>
+    <div class="footer-right">Habilidade EF06CO06</div>
+  </div>
+</footer>
+
+<script>
+// ══ NAVEGAÇÃO ══
+let current = 0;
+const visited = new Array(6).fill(false);
+visited[0] = true;
+
+function goTo(n, back) {
+  if (n < 0 || n > 5) return;
+  const cur  = document.getElementById('screen' + current);
+  const next = document.getElementById('screen' + n);
+  if (!next) return;
+  cur.classList.remove('active','back-anim');
+  next.classList.remove('back-anim');
+  if (n < current || back) next.classList.add('back-anim');
+  next.classList.add('active');
+  visited[n] = true;
+  current = n;
+  updateNav();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateNav() {
+  document.querySelectorAll('.step-dot').forEach((d, i) => {
+    d.classList.remove('active','done');
+    if (i === current) d.classList.add('active');
+    else if (visited[i]) d.classList.add('done');
+  });
+  for (let i = 0; i < 5; i++) {
+    const l = document.getElementById('line' + i + (i+1));
+    if (l) l.classList.toggle('done', visited[i+1]);
+  }
+}
+
+// ══ CENÁRIOS ══
+const scVisited = [false,false,false];
+function toggleSc(i) {
+  const box = document.getElementById('det' + i);
+  const sc  = document.getElementById('sc'  + i);
+  const open = box.classList.contains('open');
+  [0,1,2].forEach(j => {
+    document.getElementById('det'+j).classList.remove('open');
+    document.getElementById('sc' +j).classList.remove('active');
+  });
+  if (!open) { box.classList.add('open'); sc.classList.add('active'); }
+  scVisited[i] = true;
+  const cnt = scVisited.filter(Boolean).length;
+  document.getElementById('scCount').textContent = cnt;
+  document.getElementById('scBar').style.width = (cnt/3*100) + '%';
+}
+
+// ══ CALCULADORA ══
+function calcTroco() {
+  const preco = parseFloat(document.getElementById('preco').value);
+  const pago  = parseFloat(document.getElementById('pago').value);
+  const box   = document.getElementById('trocoResult');
+  const frml  = document.getElementById('trocoFormula');
+  const val   = document.getElementById('trocoValor');
+  const err   = document.getElementById('trocoErro');
+  box.classList.add('visible'); box.classList.remove('erro-box');
+  frml.style.display='block'; val.style.display='block'; err.style.display='none';
+  if (isNaN(preco)||isNaN(pago)) {
+    frml.style.display='none'; val.style.display='none'; err.style.display='block';
+    box.classList.add('erro-box'); err.textContent='⚠️ Preencha os dois campos!'; return;
+  }
+  if (pago < preco) {
+    frml.style.display='none'; val.style.display='none'; err.style.display='block';
+    box.classList.add('erro-box'); err.textContent='❌ Valor pago não pode ser menor que o preço!'; return;
+  }
+  const troco = (pago - preco).toFixed(2);
+  frml.innerHTML = `Troco = <span>R$ ${pago.toFixed(2)}</span> − <span>R$ ${preco.toFixed(2)}</span>`;
+  val.textContent = `✅  Troco = R$ ${troco}`;
+}
+document.addEventListener('keydown', e => {
+  if (e.key==='Enter' && (document.activeElement.id==='preco'||document.activeElement.id==='pago')) calcTroco();
+});
+
+// ══ QUIZ ══
+const answered = new Array(10).fill(false);
+let score = 0;
+
+function answer(q, el, correct) {
+  if (answered[q-1]) return;
+  answered[q-1] = true;
+  const all = document.querySelectorAll('#opts'+q+' .opt');
+  const fb  = document.getElementById('fb'+q);
+  if (correct) {
+    el.classList.add('certo');
+    fb.textContent = '🎉 Correto! Muito bem!';
+    fb.className = 'feedback-msg visible certo';
+    score++;
+  } else {
+    el.classList.add('errado');
+    fb.textContent = '❌ Não é essa. Revise os conceitos!';
+    fb.className = 'feedback-msg visible errado';
+    all.forEach(s => {
+      if (s.getAttribute('onclick')&&s.getAttribute('onclick').includes('true'))
+        s.classList.add('mostrar-certo');
+    });
+  }
+  all.forEach(s => {
+    if (!s.classList.contains('certo')&&!s.classList.contains('errado')&&!s.classList.contains('mostrar-certo'))
+      s.classList.add('bloqueado');
+  });
+  // Mostrar botão quando todas respondidas
+  if (answered.every(Boolean)) {
+    document.getElementById('btnSubmit').classList.add('visible');
+    document.getElementById('btnSubmit').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+}
+
+// ══ NOTA OVERLAY ══
+function verNota() {
+  const nota = score; // 0-10
+  const pct  = (nota / 10) * 100;
+
+  // emoji + estrelas + mensagem
+  let emoji, stars, msg, cls, barColor;
+  if (nota === 10) {
+    emoji='🏆'; stars='⭐⭐⭐⭐⭐'; cls='nota-10'; barColor='var(--green)';
+    msg = 'Desempenho perfeito! Você dominou completamente o reconhecimento de padrões. Parabéns!';
+  } else if (nota >= 8) {
+    emoji='🥇'; stars='⭐⭐⭐⭐'; cls='nota-8'; barColor='var(--blue)';
+    msg = 'Ótimo desempenho! Você compreendeu muito bem os conceitos de padrões e instâncias. Continue assim!';
+  } else if (nota >= 6) {
+    emoji='🥈'; stars='⭐⭐⭐'; cls='nota-6'; barColor='var(--orange)';
+    msg = 'Bom trabalho! Você entendeu a maior parte do conteúdo. Revise os pontos em que errou e tente novamente.';
+  } else if (nota >= 4) {
+    emoji='🥉'; stars='⭐⭐'; cls='nota-4'; barColor='var(--orange-dk)';
+    msg = 'Você está no caminho certo, mas precisa revisar o conteúdo. Volte às telas anteriores e tente novamente!';
+  } else {
+    emoji='📚'; stars='⭐'; cls='nota-low'; barColor='var(--red)';
+    msg = 'Não desanime! Revise os conceitos nas telas anteriores com calma e tente o quiz novamente. Você consegue!';
+  }
+
+  document.getElementById('notaEmoji').textContent   = emoji;
+  document.getElementById('notaEstrelas').textContent = stars;
+  document.getElementById('notaNumero').textContent   = nota + '.0';
+  document.getElementById('notaNumero').className     = 'nota-numero ' + cls;
+  document.getElementById('notaSub').textContent      = score + ' de 10 questões corretas';
+  document.getElementById('notaMsg').textContent      = msg;
+  document.getElementById('notaBarra').style.background = barColor;
+
+  document.getElementById('overlay').classList.add('visible');
+  // Animar barra depois de um tick
+  setTimeout(() => {
+    document.getElementById('notaBarra').style.width = pct + '%';
+  }, 100);
+}
+
+function fecharNota() {
+  document.getElementById('overlay').classList.remove('visible');
+}
+// Fechar clicando fora
+document.getElementById('overlay').addEventListener('click', function(e) {
+  if (e.target === this) fecharNota();
+});
+</script>
+</body>
+</html>
